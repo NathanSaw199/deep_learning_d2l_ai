@@ -138,4 +138,10 @@ y = torch.ones(3, dtype=torch.float32)
 # print(B)
 # print(f"{torch.mm(A, B)},\n {A@B}")
 
+# --------------------------------------------
+# 2.3.11 Norm
 
+# each element in the vector is squared and then summed up
+# then the square root of the sum is taken
+u = torch.tensor([3.0, -4.0])
+print(torch.norm(u))
