@@ -145,3 +145,7 @@ y = torch.ones(3, dtype=torch.float32)
 # then the square root of the sum is taken
 u = torch.tensor([3.0, -4.0])
 print(torch.norm(u))
+
+print(torch.abs(u).sum())
+
+print(torch.norm(torch.ones(4,9)))
