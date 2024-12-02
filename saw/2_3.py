@@ -60,11 +60,14 @@ import torch
 # B= torch.ones(3,4)
 # print(B)
 # print(torch.mm(B,A))
-A = torch.arange(8, dtype=torch.float32).reshape(2, 4)
-print(A)
-x = torch.arange(4, dtype=torch.float32)
-print(x)
-#[0., 1., 2., 3.] x [0., 1., 2., 3.] = 14,[4., 5., 6., 7.]]x[0., 1., 2., 3.] = 38 dot product
-print(A.shape, x.shape, torch.mv(A, x), A@x)
+# A = torch.arange(8, dtype=torch.float32).reshape(2, 4)
+# print(A)
+# x = torch.arange(4, dtype=torch.float32)
+# print(x)
+# #[0., 1., 2., 3.] x [0., 1., 2., 3.] = 14,[4., 5., 6., 7.]]x[0., 1., 2., 3.] = 38 dot product
+# print(A.shape, x.shape, torch.mv(A, x), A@x)
 
 # print(A@B)
+# each of the elements in the vector is squared and summed
+u = torch.tensor([3.0, -4.0,5])
+print(torch.norm(u))
