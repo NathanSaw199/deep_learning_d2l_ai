@@ -33,3 +33,4 @@ import numpy as np
 # u = np.array([[3.0, -4.0],[2,2]])
 # print(np.linalg.norm(u))
 
+print(torch.__version__)
