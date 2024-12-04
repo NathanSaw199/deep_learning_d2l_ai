@@ -7,6 +7,12 @@ class HyperParameters:  #@save
     def save_hyperparameters(self, ignore=[]):
         raise NotImplemented
     
+
+class HyperParameters:  #@save
+    """The base class of hyperparameters."""
+    def save_hyperparameters(self, ignore=[]):
+        raise NotImplemented
+    
 class DataModule(HyperParameters):  #@save
     """The base class of data."""
     def __init__(self, root='../data', num_workers=4):
