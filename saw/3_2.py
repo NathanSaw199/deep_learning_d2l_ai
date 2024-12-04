@@ -110,6 +110,7 @@ class DataModule(d2l.HyperParameters):  #@save
 
     def val_dataloader(self):
         return self.get_dataloader(train=False)
+    
 class Trainer(d2l.HyperParameters):  #@save
     """The base class for training models with data."""
     def __init__(self, max_epochs, num_gpus=0, gradient_clip_val=0):
