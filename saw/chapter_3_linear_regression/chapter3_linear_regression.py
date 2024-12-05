@@ -1,6 +1,5 @@
 import torch
 from d2l import torch as d2l
-
 #implement the entire method from scratch, including (i) the model; (ii) the loss function; (iii) a minibatch stochastic gradient descent optimizer; and (iv) the training function that stitches all of these pieces together.
 #Before we can begin optimizing our model’s parameters by minibatch SGD,  have some parameters in the first place
 #we initialize weights by drawing random numbers from a normal distribution with mean 0 and a standard deviation of 0.01, setting the bias b to 0.
