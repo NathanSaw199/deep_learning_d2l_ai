@@ -13,7 +13,7 @@ class Classifier(d2l.Module):
         #computes the accuracy by calling the accuracy method with the predictions and the actual labels. The result is plotted using the plot method with the label 'acc'.
         self.plot('acc',self.accuracy(y_hat,batch[-1]),train=False)
 
-#use a stochastic gradient descent optimizer, operating on minibatches of data. The optimizer is initialized with the model’s parameters and the learning rate lr.
+#use a stochastic gradient descent optimizer, operating on minibatches of data. The optiizer is initialized with the model’s parameters and the learning rate lr.m
 #This decorator is used to dynamically add the configure_optimizers method to the d2l.Module class.It essentially extends the class functionality without modifying the original class code directly
 @d2l.add_to_class(d2l.Module)
 #is defined to configure and return the optimizer used for training a neural network model.This refers to the instance of the class to which this method will be added, enabling access to class attributes and other methods.
