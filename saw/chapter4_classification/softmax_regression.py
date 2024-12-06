@@ -1,13 +1,22 @@
 
 # STEP 1 : take input tensor X 
+
 # STEP 2 : normalize the input tensor X with torch.exp(X)
+
 # STEP 3 : sum the normalized tensor X along the axis 1 (rows) and keep the dimension
+
 # STEP 4 :divide the normalized tensor X by the sum of the normalized tensor X along the axis 1 (rows) and return the result. First row of X_exp divided by first element of partition and Second row of X_exp divided by second element of partition: 
+
 #STEP 5: create classifier class that encapsulates the loss function and accuracy function as methods. This class will be structured to take an input tensor, perform the softmax calculation, and return the softmax-transformed tensor.
+
 #STEP 6:  creating a Softmax class that encapsulates the softmax function as a method. This class will be structured to take an input tensor, perform the softmax calculation, and return the softmax-transformed tensor. 
+
 #STEP 7: Adding this forward method to the SoftmaxRegressionScratch class effectively completes the model by defining how inputs are processed to produce outputs
+
 #STEP 8 : cross_entropy is designed to calculate the cross-entropy loss, which is commonly used in classification tasks to measure the difference between two probability distributions: the true distribution (actual class labels) and the predicted distribution (model output probabilities).
+
 #STEP 9: The loss method is added to the SoftmaxRegressionScratch class using the @d2l.add_to_class decorator, allowing the model to compute its loss using the cross-entropy metric.
+
 #STEP 10: prediction to classify some images
 
 
