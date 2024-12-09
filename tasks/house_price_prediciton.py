@@ -73,4 +73,4 @@ print(data.raw_train.shape)
 #The validation dataset (raw_val) contains 1459 rows and 80 columns.
 #This dataset is typically used for testing or prediction purposes and doesn't include the target variable (house price). Hence, it has one fewer column than the training dataset.(1459, 80)
 print(data.raw_val.shape)
-print(data.raw_train.iloc[:5],[0,1,2,3,-3,-2,-1])
+print(data.raw_train.iloc[:5,[0,1,2,3,-3,-2,-1]])
