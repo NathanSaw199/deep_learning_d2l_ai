@@ -438,3 +438,4 @@ trainer = Trainer(max_epochs=10)
 models = k_fold(trainer, data, k=5, lr=0.01)
 
 
+print(data.train.iloc[:5,[0,1,2,3,-3,-2,-1]])
