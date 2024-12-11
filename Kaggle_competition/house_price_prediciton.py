@@ -22,10 +22,11 @@ import collections
 #STEP 5: K-fold cross-validation
     #The training data is split into k equal-sized subsets (folds).
     #Create Training and Validation Sets. For each fold, the current subset (idx) is used as the validation set.The remaining subsets (data.train.drop(index=idx)) are combined to form the training set.Store Results:Each training-validation split is stored as a KaggleHouse instance in the rets list. Example Input: Training data with 1000 samples. k = 5 (5-fold cross-validation). Split the data into 5 folds, each containing 200 samples.For each fold: Use 800 samples for training.Use the remaining 200 samples for validation.Output:A list of 5 KaggleHouse instances, each containing a unique train-validation split.
+    
 #STEP 6: train the model with trainer
 
 #STEP 7:  Model Selection
-    #The average validation error is returned when we train k times in the k-fold cross-validation.
+    #The average validation error is returned when we train k times in the k-fold cross-validation.g
 
 class HyperParameters:
     """The base class of hyperparameters."""
@@ -433,5 +434,7 @@ def k_fold(trainer, data, k, lr):
     print(f'average validation log mse = {sum(val_loss)/len(val_loss)}')
     #Returns a list of trained models, one for each fold.
     return models
-trainer = Trainer(max_epochs=20)
+trainer = Trainer(max_epochs=10)
 models = k_fold(trainer, data, k=5, lr=0.01)
+
+
