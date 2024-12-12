@@ -5,11 +5,11 @@ import numpy as np
 def maximum_path(node_values: list[int]) -> int:
 
     # print(input_array)
-    root_node = input_array[0]
+    root_node = node_values[0]
     # print("root node:", root_node)
-    layer2_nodes = input_array[1:3]
+    layer2_nodes = node_values[1:3]
     # print("layer2 nodes:", layer2_nodes)
-    goal_nodes = input_array[3:]
+    goal_nodes = node_values[3:]
     # print("goal nodes:", goal_nodes)
     print("root node:", root_node)
     print("layer2 nodes:", layer2_nodes)
