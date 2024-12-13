@@ -452,11 +452,19 @@ class weightdecay(linear_regression_model):
     def loss(self,y_hat,y):
         return(super().loss(y_hat,y)+self.lambd*l2_penalty(self.w))
     
-trainer = Trainer(max_epochs=10)
-def train_scratch(lambd):
-    models = weightdecay(num_inputs=data.train.shape[1]-1,lambd=lambd,lr=0.01)
-    models.board.yscale='log'
-    trainer.fit(models,data)
-    print(f'l2 norm of w:',float(l2_penalty(models.w)))
+def train_scratch(lambd,data,k,lr):
+    val_loss, models = [], []
+    for i, data_fold in enumerate(K_fold_data(data, k)):
+        model = weightdecay(num_inputs=data.train.shape[1]-1,lambd=lambd,lr=0.01)
+        model.board.yscale='log'
+        if i != 0: model.board.display = False
+        trainer.fit(model,data_fold)
+        val_loss.append(float(model.board.data['val_loss'][-1].y))
+        models.append(model)
+        print(f'l2 norm of w:',float(l2_penalty(model.w)))
+    print(f'average validation log mse = {sum(val_loss)/len(val_loss)}')
+    return models
 
-train_scratch(7)
+trainer = Trainer(max_epochs=10)
+
+train_scratch(7,data,5,0.01)
