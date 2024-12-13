@@ -439,3 +439,24 @@ models = k_fold(trainer, data, k=5, lr=0.01)
 
 
 print(data.train.iloc[:5,[0,1,2,3,-3,-2,-1]])
+
+def l2_penalty(w):
+    return (w**2).sum()/2
+
+
+class weightdecay(linear_regression_model):
+    def __init__(self,num_inputs,lambd,lr,sigma=0.01):
+        super().__init__(num_inputs,lr,sigma)
+        self.save_hyperparameters()
+    
+    def loss(self,y_hat,y):
+        return(super().loss(y_hat,y)+self.lambd*l2_penalty(self.w))
+    
+trainer = Trainer(max_epochs=10)
+def train_scratch(lambd):
+    models = weightdecay(num_inputs=data.train.shape[1]-1,lambd=lambd,lr=0.01)
+    models.board.yscale='log'
+    trainer.fit(models,data)
+    print(f'l2 norm of w:',float(l2_penalty(models.w)))
+
+train_scratch(7)
