@@ -292,10 +292,14 @@ class linear_regression_model(Module):
 @d2l.add_to_class(linear_regression_model)
 def forward(self,X):
     return torch.matmul(X,self.w)+self.b
+# this loss function using cross-entropy loss used for classification tasks
 @d2l.add_to_class(linear_regression_model)
 def loss(self,y_hat,y):
     l =((y_hat-y)**2)/2
     return l.mean()
+# @d2l.add_to_class(linear_regression_model)
+# def loss(self,y_hat,y):
+#     return ((y_hat-y)**2).mean()
 
 class SGD(HyperParameters):
     def __init__(self,params,lr):
@@ -470,19 +474,20 @@ trainer = Trainer(max_epochs=10)
 #make changes in lambda
 K_foldwith_weight_decay(trainer,50,data,5)
 
+
 def droput_layer(X,dropout):
     assert 0<=dropout<=1
     if dropout ==1: return torch.zeros_like(X)
     mask = (torch.rand(X.shape)>dropout).float()
     return mask*X/(1.0-dropout)
 
-class Droput_MLP(d2l.Classifier):
-    def __init__(self,num_outputs,num_hidden_1,num_hidden_2,dropout1,dropout2,lr):
-        super().__init__()
+class Droput_MLP(linear_regression_model):
+    def __init__(self,num_inputs,num_outputs,num_hidden_1,num_hidden_2,dropout1,dropout2,lr):
+        super().__init__(num_inputs=num_inputs,lr=lr)
         self.save_hyperparameters()
-        self.lin1 = nn.Linear(num_hidden_1)
-        self.lin2 = nn.Linear(num_hidden_2)
-        self.lin3 = nn.Linear(num_outputs)
+        self.lin1 = nn.LazyLinear(num_hidden_1)
+        self.lin2 = nn.LazyLinear(num_hidden_2)
+        self.lin3 = nn.LazyLinear(num_outputs)
         self.relu = nn.ReLU()
     def forward(self,X):
         H1 = self.relu(self.lin1(X.reshape((X.shape[0], -1))))
@@ -493,14 +498,15 @@ class Droput_MLP(d2l.Classifier):
             H2 = droput_layer(H2, self.dropout2)
         return self.lin3(H2)
 
-def k_fold_with_dropout(trainer, data, k, hparams):
+
+
+def k_fold_with_dropout(trainer, data, k, num_outputs,num_hidden_1,num_hidden_2,dropout1,dropout2,lr):
     val_loss, models = [], []
     for i, data_fold in enumerate(K_fold_data(data, k)):
-        # Initialize DropoutMLP model with the given hyperparameters
-        model = Droput_MLP(**hparams)
-        model.board.yscale = 'log'
-        if i != 0:
-            model.board.display = False
+        num_inputs= data.train.shape[1]-1 # Exclude target column
+        model = Droput_MLP(num_inputs,num_outputs,num_hidden_1,num_hidden_2,dropout1,dropout2,lr)
+        model.board.yscale='log'
+        if i != 0: model.board.display = False
         # Train the model on the current fold
         trainer.fit(model, data_fold)
         # Log the validation loss
@@ -510,22 +516,8 @@ def k_fold_with_dropout(trainer, data, k, hparams):
     # Compute and print the average validation loss
     print(f'Average validation log MSE = {sum(val_loss) / len(val_loss)}')
     return models
-# Define hyperparameters for DropoutMLP
-hparams = {
-    'num_outputs': 10,
-    'num_hiddens_1': 128,
-    'num_hiddens_2': 64,
-    'dropout_1': 0.5,
-    'dropout_2': 0.5,
-    'lr': 0.01
-}
 
-# Prepare data
-data = KaggleHouse(batch_size=64)
-data.preprocess()
 
-# Initialize trainer
 trainer = Trainer(max_epochs=10)
 
-# Perform K-fold cross-validation with DropoutMLP
-models = k_fold_with_dropout(trainer, data, k=5, hparams=hparams)
+models = k_fold_with_dropout(trainer, data, k=5, num_outputs=1,num_hidden_1=128,num_hidden_2=64,dropout1=0.5,dropout2=0.5,lr=0.01)
