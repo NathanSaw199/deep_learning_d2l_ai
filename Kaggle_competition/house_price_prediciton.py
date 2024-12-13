@@ -452,9 +452,10 @@ class weightdecay(linear_regression_model):
     def loss(self,y_hat,y):
         return(super().loss(y_hat,y)+self.lambd*l2_penalty(self.w))
     
-def train_scratch(lambd,data,k,lr):
+def K_foldwith_weight_decay(trainer,lambd,data,k):
     val_loss, models = [], []
     for i, data_fold in enumerate(K_fold_data(data, k)):
+        #make changes in lambda
         model = weightdecay(num_inputs=data.train.shape[1]-1,lambd=lambd,lr=0.01)
         model.board.yscale='log'
         if i != 0: model.board.display = False
@@ -466,5 +467,65 @@ def train_scratch(lambd,data,k,lr):
     return models
 
 trainer = Trainer(max_epochs=10)
+#make changes in lambda
+K_foldwith_weight_decay(trainer,50,data,5)
 
-train_scratch(7,data,5,0.01)
+def droput_layer(X,dropout):
+    assert 0<=dropout<=1
+    if dropout ==1: return torch.zeros_like(X)
+    mask = (torch.rand(X.shape)>dropout).float()
+    return mask*X/(1.0-dropout)
+
+class Droput_MLP(d2l.Classifier):
+    def __init__(self,num_outputs,num_hidden_1,num_hidden_2,dropout1,dropout2,lr):
+        super().__init__()
+        self.save_hyperparameters()
+        self.lin1 = nn.Linear(num_hidden_1)
+        self.lin2 = nn.Linear(num_hidden_2)
+        self.lin3 = nn.Linear(num_outputs)
+        self.relu = nn.ReLU()
+    def forward(self,X):
+        H1 = self.relu(self.lin1(X.reshape((X.shape[0], -1))))
+        if self.training:
+            H1 = droput_layer(H1, self.dropout1)
+        H2 = self.relu(self.lin2(H1))
+        if self.training:
+            H2 = droput_layer(H2, self.dropout2)
+        return self.lin3(H2)
+
+def k_fold_with_dropout(trainer, data, k, hparams):
+    val_loss, models = [], []
+    for i, data_fold in enumerate(K_fold_data(data, k)):
+        # Initialize DropoutMLP model with the given hyperparameters
+        model = Droput_MLP(**hparams)
+        model.board.yscale = 'log'
+        if i != 0:
+            model.board.display = False
+        # Train the model on the current fold
+        trainer.fit(model, data_fold)
+        # Log the validation loss
+        val_loss.append(float(model.board.data['val_loss'][-1].y))
+        # Store the trained model
+        models.append(model)
+    # Compute and print the average validation loss
+    print(f'Average validation log MSE = {sum(val_loss) / len(val_loss)}')
+    return models
+# Define hyperparameters for DropoutMLP
+hparams = {
+    'num_outputs': 10,
+    'num_hiddens_1': 128,
+    'num_hiddens_2': 64,
+    'dropout_1': 0.5,
+    'dropout_2': 0.5,
+    'lr': 0.01
+}
+
+# Prepare data
+data = KaggleHouse(batch_size=64)
+data.preprocess()
+
+# Initialize trainer
+trainer = Trainer(max_epochs=10)
+
+# Perform K-fold cross-validation with DropoutMLP
+models = k_fold_with_dropout(trainer, data, k=5, hparams=hparams)
