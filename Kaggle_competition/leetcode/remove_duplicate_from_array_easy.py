@@ -4,9 +4,9 @@ class Solution(object):
         :type nums: List[int]
         :rtype: int
         """
-        # Pointer for the place to overwrite the next unique element
-        k = 1 
-        
+        # acts as a pointer or index to place the next unique number in the nums list. 
+        k = 1
+        #This loop iterates from the second element to the end of the list. The index i tracks the current position in the list.
         for i in range(1, len(nums)):
             # If the current number is different from the previous unique number
             if nums[i] != nums[i - 1]:
@@ -18,9 +18,7 @@ class Solution(object):
         return k
 
 # Example usage
-nums = [1, 1, 2]
+nums = [1, 1,1, 2,2]
 solution = Solution()
 k = solution.removeDuplicates(nums)
-
-print("Number of unique elements (k):", k)
 print("Modified nums:", nums[:k])
