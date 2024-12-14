@@ -4,6 +4,7 @@ class Solution(object):
        #The integer x is converted to a string s so that it can be treated as a sequence of characters for easy comparison.
         s= str(x)
         #The length of the string s is determined and stored in the variable length.
+        #length = len(s) returns the number of characters in the string s. 
         length = len(s)
         #A for loop iterates over the first half of the string, from index 0 to (length // 2) - 1.
         #length // 2 ensures that the loop covers only half the string, which is sufficient to check for a palindrome.
