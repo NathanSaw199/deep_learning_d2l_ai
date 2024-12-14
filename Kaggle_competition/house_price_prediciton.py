@@ -452,19 +452,25 @@ models = k_fold(trainer, data, k=5, lr=0.01)
 
 
 print(data.train.iloc[:5,[0,1,2,3,-3,-2,-1]])
-
+#l2_penalty(w) computes the L2 regularization term (often called weight decay) for the parameter w.
 def l2_penalty(w):
+    #(w**2).sum() sums the squares of all elements in w.Dividing by 2 is a common convention in some loss function formulations (it doesn't change the optimization dynamics significantly).This function returns a scalar value representing the magnitude of the L2 penalty for w.
     return (w**2).sum()/2
 
-
+#class weightdecay(linear_regression_model): This class inherits from linear_regression_model. The original linear_regression_model has no regularization. By inheriting, we can reuse its code and simply override the loss method to add weight decay.
 class weightdecay(linear_regression_model):
+    #num_inputs: The number of input features,lambd: The weight decay parameter (often denoted as λ). It controls how strongly we penalize large weights.lr: The learning rate.sigma=0.01: Standard deviation for initializing the weights.Calls super().__init__(num_inputs,lr,sigma) to initialize the parent class. This sets up w and b and other parameters.
     def __init__(self,num_inputs,lambd,lr,sigma=0.01):
         super().__init__(num_inputs,lr,sigma)
+        #self.save_hyperparameters() stores num_inputs, lambd, lr, and sigma as hyperparameters.
         self.save_hyperparameters()
-    
+    #Overrides the parent class loss method.
     def loss(self,y_hat,y):
+        #super().loss(y_hat,y) computes the original mean squared error (MSE) loss.
+        # self.lambd*l2_penalty(self.w) adds an L2 penalty to the loss
+        #The total loss = MSE loss + λ * L2 penalty.This encourages the model to keep the magnitude of weights w small, thus reducing overfitting.
         return(super().loss(y_hat,y)+self.lambd*l2_penalty(self.w))
-    
+    # Integrates these ideas by creating a regularized linear regression model and evaluating it across multiple folds of the data, printing out performance metrics and the resulting weight magnitudes.K-fold cross-validation: Gives a more stable measure of model performance by training and validating on multiple subsets of the data.Weight decay (L2 regularization): Helps prevent overfitting by penalizing large weights, encouraging the model to find simpler solutions.
 def K_foldwith_weight_decay(trainer,lambd,data,k):
     val_loss, models = [], []
     for i, data_fold in enumerate(K_fold_data(data, k)):
@@ -479,33 +485,66 @@ def K_foldwith_weight_decay(trainer,lambd,data,k):
 
 trainer = Trainer(max_epochs=10)
 #make changes in lambda
+
 K_foldwith_weight_decay(trainer,50,data,5)
-
-
+#: Dropout is a regularization technique used during neural network training. At each training step, dropout randomly “drops” (sets to zero) a subset of neurons’ outputs with a specified probability. For example, if dropout=0.5, then about half of the neurons will be turned off at random in that layer for that training iteration. dropout is applied after the first and second hidden layers during training. When model.training is True, a dropout mask is applied, zeroing out some fraction of the hidden layer’s activations. When you switch to evaluation mode (model.eval()), dropout is automatically turned off, ensuring that the entire network is used for making predictions.
+#droput_layer randomly zeroes out some fraction (given by dropout) of the elements in X during training to prevent overfitting. It also scales the survivors so that the overall expected magnitude stays roughly the same.
+#X is the input tensor to the dropout layer. It has shape (batch_size, num_features).dropout: A number between 0 and 1 indicating the dropout probability.
 def droput_layer(X,dropout):
+    #Ensures that the dropout probability is valid (i.e., between 0 and 1).
     assert 0<=dropout<=1
+    #If the dropout probability is 1, it means all elements are dropped. This returns a tensor of zeros with the same shape as X.
     if dropout ==1: return torch.zeros_like(X)
+    #torch.rand(X.shape) generates random values between 0 and 1 of the same shape as X.
+    # (torch.rand(X.shape) > dropout) creates a boolean mask
+    #For example, if dropout=0.5, then about half the values will be True (survive) and half False (dropped).
+    # .float() converts the boolean mask to floats (1.0 for True, 0.0 for False).
     mask = (torch.rand(X.shape)>dropout).float()
+    #Multiplies X by the mask to keep some elements and zero out others.
+    # Dividing by (1.0 - dropout) rescales the remaining values so that the expected value remains consistent. Without this scaling, the output would have a lower expected magnitude during training.
     return mask*X/(1.0-dropout)
-
+#Inherits from linear_regression_model, which provides basic attributes like w, b, and loss methods. This inheritance is just for convenience or consistency; the actual architecture here is MLP-based rather than just linear regression.
+#The code takes an input batch X, flattens it, and passes it through two layers of linear transformations and ReLU activations.
+#During training, it also applies dropout after each hidden layer to prevent overfitting.
+#Finally, it outputs the predictions from the last linear layer.
 class Droput_MLP(linear_regression_model):
     def __init__(self,num_inputs,num_outputs,num_hidden_1,num_hidden_2,dropout1,dropout2,lr):
         super().__init__(num_inputs=num_inputs,lr=lr)
+        #Saves all the passed arguments (num_inputs, num_outputs, num_hidden_1, num_hidden_2, dropout1, dropout2, lr) as class attributes automatically.
         self.save_hyperparameters()
+        #self.lin1 = nn.LazyLinear(num_hidden_1): A linear layer whose input dimension is inferred from the input data at runtime. Output dimension is num_hidden_1.
         self.lin1 = nn.LazyLinear(num_hidden_1)
+        #self.lin2 = nn.LazyLinear(num_hidden_2): Another linear layer mapping from num_hidden_1 units to num_hidden_2 units.
         self.lin2 = nn.LazyLinear(num_hidden_2)
+        #self.lin3 = nn.LazyLinear(num_outputs): Final output layer mapping from num_hidden_2 to num_outputs.
         self.lin3 = nn.LazyLinear(num_outputs)
+        #self.relu = nn.ReLU(): Activation function. ReLU is a common choice for hidden layers in neural networks. It introduces nonlinearity into the model and helps with learning complex patterns. It's applied element-wise to the output of the linear layers. and self.relu = nn.ReLU() creates an instance of the ReLU activation function.
+        
         self.relu = nn.ReLU()
+        # The dropout probabilities dropout1 and dropout2 are stored in self due to save_hyperparameters(). They will be used in the forward pass.
     def forward(self,X):
+        #X.reshape((X.shape[0], -1)), we are transforming the tensor X into a 2D shape where:X.shape[0] is the batch size (the number of examples in the current batch).
+        # -1 tells PyTorch to automatically determine the size of this dimension based on the remaining elements.
+        # for example, if X has shape (64, 3, 32, 32) (64 examples, 3 channels, 32x32 images), then X.reshape((X.shape[0], -1)) will reshape it to (64, 3072) (64 examples, 3072 features).
+        #Batch dimension: X.shape[0] is the first dimension of X, usually the number of samples in the batch. For example, if X originally has a shape (batch_size, height, width, channels) for an image input, then X.shape[0] = batch_size.
+        # Flattening: The -1 in reshape instructs PyTorch to collapse all other dimensions into a single dimension. If X was initially (batch_size, height, width, channels), the reshape operation (X.shape[0], -1) turns it into a 2D tensor (batch_size, height * width * channels).
+        # X.reshape((X.shape[0], -1)The result is a 2D tensor of shape (batch_size, num_features) suitable for feeding into fully connected (linear) layers.
+        #self.lin1(...) applies the first linear (fully connected) layer to the flattened input. This layer transforms the input into num_hidden_1 features.
+        #self.relu(...) applies a ReLU (Rectified Linear Unit) activation function to the output of lin1. The ReLU sets all negative values to zero, introducing non-linearity and helping the model capture more complex relationships.
         H1 = self.relu(self.lin1(X.reshape((X.shape[0], -1))))
+        #The self.training flag is True only when the model is in training mode. In evaluation mode (model.eval()), no dropout is applied.
+        # droput_layer(H1, self.dropout1) randomly zeroes out a fraction dropout1 of the features in H1, scaling the remaining ones appropriately. This prevents the network from relying too heavily on any particular set of neurons, thus improving generalization.
         if self.training:
             H1 = droput_layer(H1, self.dropout1)
+            #H2 = self.relu(self.lin2(H1)):Takes the output H1 from the previous step and passes it through another linear layer (lin2), which maps H1 from num_hidden_1 features to num_hidden_2 features.Applies another ReLU activation to introduce non-linearity in the second hidden layer.
         H2 = self.relu(self.lin2(H1))
         if self.training:
+            #Similar to the first dropout step, applies dropout on H2 with probability dropout2 if the model is training. This further regularizes the model.
             H2 = droput_layer(H2, self.dropout2)
+            #The final linear layer (lin3) takes H2 and maps it to the desired output dimension, num_outputs.There is no activation here, as often for regression tasks or the final layer of classification tasks (depending on the loss and output requirements) we might return raw logits or continuous values.
         return self.lin3(H2)
 
-
+#When you use dropout in a model and then run K-fold cross-validation, each fold’s training is still subject to dropout’s regularization effect. This means:For each fold, the model trains on a different portion of the data with dropout active.Dropout helps ensure that for each fold, the model you train is less likely to overfit to the specific training subset of that fold.The result is that each fold produces a model that’s been regularized by dropout, likely leading to improved robustness.Dropout’s role: Prevents overfitting on the training set of any single fold. Without dropout, the model might latch onto specific patterns in the small training subset, leading to poor generalization.K-fold’s role: Ensures the model is tested on multiple different subsets of the data, providing a more comprehensive evaluation of its ability to generalize.When combined, dropout ensures that each fold’s model is less likely to overfit its particular training subset, and K-fold ensures that the final reported performance is an average over multiple different training/validation splits. This combination gives a more reliable and stable measure of how well the model (with dropout) would perform on unseen data.Dropout acts as an internal safeguard during training, making the model less overfitted for each training fold.K-fold cross-validation acts as an external safeguard for evaluation, ensuring that performance results are not tied to a single data split.
 
 def k_fold_with_dropout(trainer, data, k, num_outputs,num_hidden_1,num_hidden_2,dropout1,dropout2,lr):
     val_loss, models = [], []
