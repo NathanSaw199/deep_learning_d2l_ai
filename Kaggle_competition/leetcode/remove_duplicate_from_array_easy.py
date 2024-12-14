@@ -4,14 +4,23 @@ class Solution(object):
         :type nums: List[int]
         :rtype: int
         """
-        expected_num = []
-        for i in nums:
-            if i not in expected_num:
-                expected_num.append(i)
-        return expected_num
-    
+        # Pointer for the place to overwrite the next unique element
+        k = 1 
+        
+        for i in range(1, len(nums)):
+            # If the current number is different from the previous unique number
+            if nums[i] != nums[i - 1]:
+                nums[k] = nums[i]  # Overwrite at index k
+           
+                k += 1  # Move the pointer
+             
+        
+        return k
 
-nums = [1,1,2]
+# Example usage
+nums = [1, 1, 2]
 solution = Solution()
 k = solution.removeDuplicates(nums)
-print(k)
+
+print("Number of unique elements (k):", k)
+print("Modified nums:", nums[:k])
