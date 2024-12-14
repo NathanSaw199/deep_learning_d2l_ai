@@ -17,6 +17,12 @@ import collections
 
 #STEP 5 : configure_optimizers integrates the optimizer with the model, returning an SGD instance that the trainer can use.
 
+#STEP 6 : K fold cross validation is implemented to evaluate the model on multiple subsets of the data.
+
+#STEP 7 : Weight decay (L2 regularization) is added to the model to prevent overfitting. with K-fold cross-validation.
+
+#STEP 8 : Dropout is added to the model to prevent overfitting. with K-fold cross-validation.
+
 #class HyperParameters: A base class to easily save function arguments as hyperparameters.
 class HyperParameters:
     """The base class of hyperparameters."""
