@@ -6,6 +6,7 @@
 #torchvision.transforms: contains common image transformations that can be chained together using Compose.
 #torchvision.utils.data.DataLoader: a utility for loading and iterating over data in batches.
 #torchvision.utils.data.Dataset: an abstract class representing a dataset.
+import torch.utils.data.dataloader
 from tqdm.auto import tqdm
 import requests
 from pathlib import Path
@@ -45,7 +46,6 @@ test_data = datasets.FashionMNIST(
 
 )
 
-print(len(train_data),len(test_data))
 
 
 #the first training example 
@@ -245,7 +245,7 @@ for epoch in tqdm(range(epochs)):
         test_acc /= len(test_dataloader)
 
     
-    print(f"\n train loss: {train_loss:.4f}, test loss: {test_loss:.4f}, test acc: {test_acc:.4f}")
+    # print(f"\n train loss: {train_loss:.4f}, test loss: {test_loss:.4f}, test acc: {test_acc:.4f}")
 
 
 train_time_end_on_cpu = timer()
@@ -279,7 +279,7 @@ def eval_model(model : torch.nn.Module,
 #calculate model 0 result on test dataset
 model_0_result = eval_model(model=model_0,data_loader=test_dataloader,loss_fn= loss_fn,accuracy_fn=accuracy_fn)
 
-print(model_0_result)
+# print(model_0_result)
 
 
 #set up device agnostic-code ( using a GPU)
@@ -307,9 +307,9 @@ class FashionMNISTModelV1(nn.Module):
         )
 
 
-def forward(self, x: torch.tensor):
-        return self.layer_stack(x)
-    
+    def forward(self, x: torch.tensor):
+            return self.layer_stack(x)
+        
 
 
     #create and intance of model
@@ -323,8 +323,132 @@ model_l= FashionMNISTModelV1(input_shape = 784,
 print(next(model_l.parameters()).device)
 
 
-# set up loss, optimizer and evaluation metrics
+# Setup loss and optimizer
+loss_fn = nn.CrossEntropyLoss()
+optimizer = torch.optim.SGD(params=model_l.parameters(),
+                             lr=0.1)
 
-loss_fn = nn.CrossEntropyLoss() #mesuare how wrong our model is 
-optimizer = torch.optim.SGD(params=model_l.parameters(), # to update our model's parameters to reduce the loss 
-                            lr = 0.1)
+#functionizing training and evaluation/testing loops
+
+
+#training loop = train_step()
+#testing loop = test_step()
+
+def train_step(model: torch.nn.Module,
+               data_loader : torch.utils.data.DataLoader,
+               loss_fn : torch.nn.Module,
+               optimizer : torch.optim.Optimizer,
+               accuracy_fn,
+               device : torch.device = device
+                ):
+    train_loss, train_acc = 0,0
+    model.train()
+    #add a loop to loop through the batches of training data
+    for batch,(X,y) in enumerate(data_loader):
+        #put data on target device
+        X,y = X.to(device),y.to(device)
+        #1. forward pass
+        y_pred = model(X)
+        #2, Calculate loss (per batch)
+        loss = loss_fn(y_pred,y)
+        train_loss += loss
+        train_acc +=accuracy_fn(y_true =y,y_pred=y_pred.argmax(dim=1))
+        #3. optimizer zero grad
+        optimizer.zero_grad()
+        #4. backward pass
+        loss.backward()
+        #5. optimizer step
+        optimizer.step()
+        #print out 
+
+    #divide total train loss and accuracy by length of train dataloader
+    train_loss /= len(data_loader)
+    train_acc /= len(data_loader)
+    print(f"train loss :{train_loss :.5f}, train acc : {train_acc:.2f}%")
+
+def test_step(model: torch.nn.Module,
+              data_loader : torch.utils.data.DataLoader,
+              loss_fn : torch.nn.Module,
+              accuracy_fn,
+              device : torch.device = device):
+    test_loss, test_acc =0,0
+    model.eval()
+    with torch.inference_mode():
+        for X,y in data_loader:
+            X, y= X.to(device),y.to(device)
+                #forward pass
+            test_pred= model(X)
+                #calculate loss
+            test_loss += loss_fn(test_pred,y)
+                #calculate accuracy
+            test_acc+= accuracy_fn(y_true=y,y_pred=test_pred.argmax(dim=1))    
+            #divide total test loss by length of test data loader to get average test loss per batch
+        test_loss /= len(data_loader)
+            #divide total test accuracy by length of test data loader to get average test accuracy per batch
+        test_acc /= len(data_loader)
+
+        
+        print(f"\n test loss: {test_loss:.4f}, test acc: {test_acc:.4f}")
+
+torch.manual_seed(42)
+
+# Measure time
+train_time_start_on_gpu = timer()
+# Train and test model 
+epochs = 3
+for epoch in tqdm(range(epochs)):
+    print(f"Epoch: {epoch}\n---------")
+    train_step(data_loader=train_dataloader, 
+        model=model_l,
+        loss_fn=loss_fn,
+        optimizer=optimizer,
+        accuracy_fn=accuracy_fn,
+        device=device
+    )
+    test_step(data_loader=test_dataloader,
+        model=model_l,
+        loss_fn=loss_fn,
+        accuracy_fn=accuracy_fn,
+        device=device
+    )
+
+train_time_end_on_gpu = timer()
+
+total_train_time_model_1 = print_train_time(start = train_time_start_on_gpu, end = train_time_end_on_gpu,device=device)
+
+print(total_train_time_model_1)
+
+print(model_0_result,total_train_time_model_0)
+
+
+
+#get model 1 result dictionary
+def eval_model(model : torch.nn.Module,
+                data_loader : torch.utils.data.DataLoader,
+                loss_fn: torch.nn.Module,
+                accuracy_fn,
+                device = device):
+    
+    #return a dictionary containing the results of model predicting on data_loader
+    loss, acc =0 ,0
+    model.eval()
+    with torch.inference_mode():
+        for X,y in data_loader:
+            X,y = X.to(device),y.to(device)
+            #make predictions 
+            y_pred = model(X)
+            #accumulate the loss and acc values per batch
+            loss += loss_fn(y_pred,y)
+            acc += accuracy_fn(y_true = y,y_pred = y_pred.argmax(dim=1))
+        
+        #scale loss and acc to find the average loss/acc per batch
+        loss /= len(data_loader)
+        acc /= len(data_loader)
+    
+    return {"Model Name" : model.__class__.__name__,
+            "Model loss" : loss.item(),
+            "Model acc" : acc }
+
+#calculate model 0 result on test dataset
+model_1_result = eval_model(model=model_l,data_loader=test_dataloader,loss_fn=loss_fn,accuracy_fn=accuracy_fn,device=device)
+print(model_1_result)
