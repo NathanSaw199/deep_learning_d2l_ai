@@ -6,7 +6,7 @@
 #torchvision.transforms: contains common image transformations that can be chained together using Compose.
 #torchvision.utils.data.DataLoader: a utility for loading and iterating over data in batches.
 #torchvision.utils.data.Dataset: an abstract class representing a dataset.
-
+from tqdm.auto import tqdm
 import requests
 from pathlib import Path
 import torch
@@ -19,6 +19,11 @@ import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from timeit import default_timer as timer
 from helper_functions import accuracy_fn
+
+
+#Step 1: Getting the dataset and turn into tensors
+#Step 2: build or pick a pretrained model-> build a training loop
+
 #getting a dataset 
 #The FashionMNIST dataset contains images of clothing items from torchvision.datasets
 
@@ -183,3 +188,143 @@ start_time = timer()
 end_time = timer()
 
 print(print_train_time(start_time,end_time,device='cpu'))
+
+#3.3 creating a training loop and training the model on batches of data
+# loop through epochs
+# loop through training batches and calcuate loss per batch
+# loop trhough test batches and perform tesing steps and calculate test loss per batch
+# print out what is happening 
+#Time it all 
+
+#set the seed and start the timer
+#optimizer will update a model's parameters once per batch rather than once per epoch
+#manuel_seed is used to ensure that the results are reproducible. The seed is set to 42, which is a common practice in machine learning experiments. The seed value can be any integer. The same seed value will produce the same random numbers every time the code is run. This is useful for debugging and reproducing results. 
+torch.manual_seed(42)
+train_time_start_on_cpu = timer()   
+#set number of epochs
+epochs = 3
+#create training and test loop 
+for epoch in tqdm(range(epochs)):
+    print(f"epoch : {epoch}\n-------------------------------")
+    #training 
+    train_loss = 0 
+    #add a loop to loop through the batches of training data
+    for batch,(X,y) in enumerate(train_dataloader):
+        model_0.train()
+        #1. forward pass
+        y_pred = model_0(X)
+        #2, Calculate loss (per batch)
+        loss = loss_fn(y_pred,y)
+        train_loss += loss
+        #3. optimizer zero grad
+        optimizer.zero_grad()
+        #4. backward pass
+        loss.backward()
+        #5. optimizer step
+        optimizer.step()
+        #print out 
+    if batch % 400  == 0:
+        print(f"Looked at {batch*len(X)}/{len(train_dataloader.dataset)} samples")
+    #divide total train loss by length of train data loader
+    train_loss /= len(train_dataloader)
+
+    #testing 
+    test_loss, test_acc =0,0
+    model_0.eval()
+    with torch.inference_mode():
+        for X_test,y_test in test_dataloader:
+            #forward pass
+            test_pred= model_0(X_test)
+            #calculate loss
+            test_loss += loss_fn(test_pred,y_test)
+            #calculate accuracy
+            test_acc+= accuracy_fn(y_true=y_test,y_pred=test_pred.argmax(dim=1))    
+        #divide total test loss by length of test data loader to get average test loss per batch
+        test_loss /= len(test_dataloader)
+        #divide total test accuracy by length of test data loader to get average test accuracy per batch
+        test_acc /= len(test_dataloader)
+
+    
+    print(f"\n train loss: {train_loss:.4f}, test loss: {test_loss:.4f}, test acc: {test_acc:.4f}")
+
+
+train_time_end_on_cpu = timer()
+total_train_time_model_0 = print_train_time(train_time_start_on_cpu,train_time_end_on_cpu,device=str(next(model_0.parameters()).device))
+
+#4. make prediction and get model 0 result 
+def eval_model(model : torch.nn.Module,
+                data_loader : torch.utils.data.DataLoader,
+                loss_fn: torch.nn.Module,
+                accuracy_fn):
+    
+    #return a dictionary containing the results of model predicting on data_loader
+    loss, acc =0 ,0
+    model.eval()
+    with torch.inference_mode():
+        for X,y in data_loader:
+            #make predictions 
+            y_pred = model(X)
+            #accumulate the loss and acc values per batch
+            loss += loss_fn(y_pred,y)
+            acc += accuracy_fn(y_true = y,y_pred = y_pred.argmax(dim=1))
+        
+        #scale loss and acc to find the average loss/acc per batch
+        loss /= len(data_loader)
+        acc /= len(data_loader)
+    
+    return {"Model Name" : model.__class__.__name__,
+            "Model loss" : loss.item(),
+            "Model acc" : acc }
+
+#calculate model 0 result on test dataset
+model_0_result = eval_model(model=model_0,data_loader=test_dataloader,loss_fn= loss_fn,accuracy_fn=accuracy_fn)
+
+print(model_0_result)
+
+
+#set up device agnostic-code ( using a GPU)
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+
+#improve through experimentation 
+
+#create a model with non linear and linear data
+class FashionMNISTModelV1(nn.Module):
+    def __init__(self,
+                 input_shape : int,
+                 hidden_units : int,
+                 output_shape : int):
+        super().__init__()
+
+        self.layer_stack = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(in_features=input_shape,
+                      out_features=hidden_units),
+            nn.ReLU(),
+            nn.Linear(in_features=hidden_units,out_features=output_shape),
+            nn.ReLU()
+        )
+
+
+def forward(self, x: torch.tensor):
+        return self.layer_stack(x)
+    
+
+
+    #create and intance of model
+torch.manual_seed(42)
+model_l= FashionMNISTModelV1(input_shape = 784,
+                                  hidden_units =10,
+                                  output_shape = len(class_names)).to(device)
+    
+
+    
+print(next(model_l.parameters()).device)
+
+
+# set up loss, optimizer and evaluation metrics
+
+loss_fn = nn.CrossEntropyLoss() #mesuare how wrong our model is 
+optimizer = torch.optim.SGD(params=model_l.parameters(), # to update our model's parameters to reduce the loss 
+                            lr = 0.1)
