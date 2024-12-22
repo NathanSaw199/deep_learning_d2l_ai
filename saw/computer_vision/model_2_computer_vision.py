@@ -81,45 +81,69 @@ class FashionMNISTModelV2(nn.Module):
         )
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(in_features=hidden_units*0,
+            nn.Linear(in_features=hidden_units*7*7,
                       out_features=output_shape)
         )
     def forward(self,x):
         x = self.conv_block_1(x)
-        print(x.shape)
+        print(f"output shape of conv block 1 {x.shape}")
         x = self.conv_block_2(x)
-        print(x.shape)
+        print(f"output shape of conv block 2 {x.shape}")
         x = self.classifier(x)
+        print(f"output shape of classifier {x.shape}")
         return x 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 
 torch.manual_seed(42)
 model_2 = FashionMNISTModelV2(input_shape=1,
                               hidden_units=10,
-                              output_shape=len(class_names))
+                              output_shape=len(class_names)).to(device)
 # print(image.shape)
 
+rand_image_tensor = torch.randn(size=(1,28,28))
+print(rand_image_tensor.shape)
 
-#nn.conv2d
+print(model_2(rand_image_tensor.unsqueeze(0).to(device)))
 
-torch.manual_seed(42)
-#create a batch of images 
-images = torch.randn(size = (32,3,64,64))
-test_image = images[0]
-# print(f"image batch shape: {images.shape}")
-# print(f"single image shape : {test_image.shape}")
-# print(f"Test image: \n{test_image}")
+# plt.imshow(image.squeeze(),cmap="gray")
+
+# plt.show()
+
+# #nn.conv2d
+
+# torch.manual_seed(42)
+# #create a batch of images 
+# images = torch.randn(size = (32,3,64,64))
+# test_image = images[0]
+# # print(f"image batch shape: {images.shape}")
+# # print(f"single image shape : {test_image.shape}")
+# # print(f"Test image: \n{test_image}")
 
 
-torch.manual_seed(42)
-#create a single conv2d layer 
-conv_layer = nn.Conv2d(in_channels=3,
-                       out_channels=10,
-                       kernel_size=(3,3),
-                       stride=1,
-                       padding=0)
-#pass the data thru conv layer
+# torch.manual_seed(42)
+# #create a single conv2d layer 
+# conv_layer = nn.Conv2d(in_channels=3,
+#                        out_channels=64,
+#                        kernel_size=(3,3),
+#                        stride=1,
+#                        padding=1)
+# #pass the data thru conv layer
 
-conv_output = conv_layer(test_image)
-print(conv_output.shape)
+# conv_output = conv_layer(test_image)
+# print(conv_output.shape)
 
-print(test_image.shape)
+# print(test_image.shape)
+
+
+
+# max_pool_layer = nn.MaxPool2d(kernel_size=2)
+# #pass data through just conv layer
+# test_image_through_conv = conv_layer(test_image.unsqueeze(dim=0))
+# print(f"Shape after going through conv_layer : {test_image_through_conv.shape}")
+
+
+# #pass data through the max pool layer
+# test_image_through_conv_and_max_pool = max_pool_layer(test_image_through_conv)
+# print(f"shape after going through conv layer and max pool layer : {test_image_through_conv_and_max_pool.shape}")
+
