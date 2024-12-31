@@ -79,3 +79,5 @@ print(classification_report(Y_test,y_pred))
 
 #bayes rule
 #P(A|B) = (P(B|A).P(A))/P(B)
+
+#navie bayes is bayes applied in classification 
