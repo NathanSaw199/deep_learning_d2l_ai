@@ -20,8 +20,8 @@ import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from timeit import default_timer as timer
 from helper_functions import accuracy_fn
-
-
+import pandas as pd 
+import random
 #Step 1: Getting the dataset and turn into tensors
 #Step 2: build or pick a pretrained model-> build a training loop
 
@@ -452,3 +452,172 @@ def eval_model(model : torch.nn.Module,
 #calculate model 0 result on test dataset
 model_1_result = eval_model(model=model_l,data_loader=test_dataloader,loss_fn=loss_fn,accuracy_fn=accuracy_fn,device=device)
 print(model_1_result)
+
+
+class FashionMNISTModelV2(nn.Module):
+    #replicates the TINY VGG
+    def __init__(self, input_shape : int, hidden_units : int, output_shape : int):
+        super().__init__()
+        self.conv_block_1 = nn.Sequential(
+            nn.Conv2d(in_channels=input_shape,
+                      out_channels=hidden_units,
+                      kernel_size=3,
+                      stride=1,
+                      padding=1),
+            nn.ReLU(),
+            nn.Conv2d(in_channels=hidden_units,
+                      out_channels=hidden_units,
+                      kernel_size=3,
+                      stride=1,
+                      padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2)
+
+        )
+        self.conv_block_2 = nn.Sequential(
+            nn.Conv2d(in_channels=hidden_units,
+                      out_channels=hidden_units,
+                      kernel_size=3,
+                      stride=1,
+                      padding=1),
+            nn.ReLU(),
+            nn.Conv2d(in_channels=hidden_units,
+                      out_channels=hidden_units,
+                      kernel_size=3,
+                      stride=1,
+                      padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2)
+
+
+        )
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(in_features=hidden_units*7*7,
+                      out_features=output_shape)
+        )
+    def forward(self,x):
+        x = self.conv_block_1(x)
+        # print(f"output shape of conv block 1 {x.shape}")
+        x = self.conv_block_2(x)
+        # print(f"output shape of conv block 2 {x.shape}")
+        x = self.classifier(x)
+        # print(f"output shape of classifier {x.shape}")
+        return x 
+
+model_2 = FashionMNISTModelV2(input_shape=1,
+                              hidden_units=30,
+                              output_shape=len(class_names)).to(device)
+# print(image.shape)
+
+rand_image_tensor = torch.randn(size=(1,28,28))
+# print(rand_image_tensor.shape)
+
+# print(model_2(rand_image_tensor.unsqueeze(0).to(device)))
+
+
+##training CNN model with our own dataset loss function and optimizer 
+loss_fn = nn.CrossEntropyLoss()
+optimizer = torch.optim.SGD(params = model_2.parameters(),lr=0.1)
+
+
+
+train_time_start_model_2 = timer()
+epochs = 3
+for epoch in tqdm(range(epochs)):
+    print(f"Epoch : {epoch}\n---------")
+    train_step(model=model_2,
+               data_loader=train_dataloader,
+               loss_fn=loss_fn,
+               optimizer=optimizer,
+               accuracy_fn=accuracy_fn,
+               device=device)
+    test_step(model=model_2,
+               data_loader=test_dataloader,
+               loss_fn=loss_fn,
+               accuracy_fn=accuracy_fn,
+               device=device)
+    
+
+train_time_end_model_2 = timer()
+
+total_train_time = print_train_time(start=train_time_start_model_2,end = train_time_end_model_2)
+
+
+
+model_2_result = eval_model(
+    model=model_2,
+    data_loader=test_dataloader,
+    loss_fn=loss_fn,
+    accuracy_fn=accuracy_fn,
+    device=device
+
+)
+print(model_2_result)
+
+compare_results = pd.DataFrame([model_0_result,
+                                model_1_result,
+                                model_2_result])
+
+
+compare_results["training_time"] =[total_train_time_model_0,
+                                   total_train_time_model_1,
+                                   
+                                   total_train_time]
+print(compare_results)
+
+#make and evluate random predciton with the best model 
+
+
+def make_predictions(model: torch.nn.Module,
+                     data: list,
+                     device: torch.device= device):
+    pre_probs = []
+    model.eval()
+    model.to(device)
+    with torch.inference_mode():
+        for sample in data:
+            #prepare the sample (add a batch dimension and pass to target device)
+            sample = torch.unsqueeze(sample,dim=0).to(device)
+
+            #forward pass ( model outputs raw logtis)
+            pred_logit = model(sample)
+            #get prediction probability ( logit - > prediction probability)
+            pred_prob = torch.softmax(pred_logit.squeeze(),dim=0)
+
+            # get pred_prob off the GPU for futther calculations 
+            pre_probs.append(pred_prob.cpu())
+    #stack the pred probs to turn list into a tensor
+    return torch.stack(pre_probs)
+
+random.seed(42)
+test_samples = []
+test_labels = []
+
+for sample,label in random.sample(list(test_data),k=9):
+    test_samples.append(sample)
+    test_labels.append(label)
+
+test_samples[0].shape
+
+plt.imshow(test_samples[0].squeeze(),cmap="gray")
+plt.title(class_names[test_labels[0]])
+plt.show()
+
+
+#make predictions 
+pred_probs = make_predictions(model=model_2,data=test_samples)
+
+
+#view first two prediction probabilities 
+pred_probs[:2]
+
+
+#convert prediction problity to labels 
+pred_classes = pred_probs.argmax(dim=1)
+print(pred_classes)
+
+
+#making confusing matrix for futher prediction evaluation 
+
+
